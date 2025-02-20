@@ -1,0 +1,140 @@
+function NewsOverlay(o) {
+  const generateUUID = () => {var A=crypto||window.crypto||window.msCrypto;if(A.randomUUID)return A.randomUUID();return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^A.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16))}
+  
+  
+  const overlayURL = "https://lrt.overlay.yepnews.eu/";
+  const sourceName = "LRT";
+  var consentValue = false;
+  var isSubscribed = false;
+  const consentGiven = () => {
+    if (!isSubscribed && typeof Cookiebot !== "undefined") {
+      isSubscribed = true;
+      window.addEventListener("CookiebotOnAccept", function (e) {
+        consentValue = !!(Cookiebot.consent.statistics);
+      }, false);
+    }
+    return consentValue;
+  }
+  const percentage = 100;
+  const defaultZindex = 2147483640;
+  const getArticleID  = () => {
+    try {
+      return window.location.pathname?.split("/")?.reverse().filter(n => n)[1];
+    } catch (e) {console.log(e);}
+  }
+  const getArticleLanguage = () => {return (document?.documentElement?.lang?.toLowerCase() || "lt").substring(0,2);};
+
+  var articleRead = false;
+
+  const parentLocation = window.location;
+  const urlParams = new URLSearchParams(parentLocation.search);
+  const debugMode = urlParams.get('article_debug')  === 'true' || false;
+  const disableCache = false;
+  const ebuParams = window?.location?.href?.split('#').find(d => d.includes("ebu_s_id"))?.slice(8).split('&');
+  const hashes = ebuParams?.length > 2 ? {id: ebuParams[0],org: ebuParams[1],lang: ebuParams[2], session_id: ebuParams[3].slice(8)} : ebuParams?.length ? {session_id: ebuParams[0]} : null;
+  const ebu_news_id = urlParams.get('ebu_news_id')?.length ? urlParams.get('ebu_news_id') : hashes?.id;
+  const ebu_news_org = urlParams.get('ebu_news_org')?.length ? urlParams.get('ebu_news_org') : hashes?.org;
+  const ebu_news_language = urlParams.get('ebu_news_language')?.length ? urlParams.get('ebu_news_language') : hashes?.lang;
+  const ebu_news_s_id = hashes?.session_id?.length ?  hashes?.session_id : generateUUID();
+  const ebu_share = ebuParams?.find(s => s.includes("ebu_share"))?.slice(9)?.replace('=', '');
+
+  const sendReadEvent = () => {
+    articleRead = true;
+    if (percentage > 0 && ( percentage === 100 || percentage > Math.floor((Math.random() * 100) + 1))) {
+      let iframeEvent = document.createElement('iframe');
+      iframeEvent.id = "ebu_news_tracker_article_read";
+      iframeEvent.style.display = 'none';
+      iframeEvent.src = `${overlayURL}event.html?page=event&type=article_read&source=${sourceName}&id=${iframeEvent.id}${ebu_news_org ? '&organisation=' + ebu_news_org : ''}&article_id=${ebu_news_id || getArticleID() }&language=${ebu_news_language || getArticleLanguage()}&sampling_rate=${percentage}&page_uri=${btoa(encodeURIComponent(parentLocation.href))}`;
+      document.body.appendChild(iframeEvent);
+    }
+  }
+
+  var overlayFirstCheck = true;
+  const overlayObserveConsent = () => {
+    let currentConsent = consentGiven();
+    if (currentConsent && !articleRead) sendReadEvent();
+    
+    const check = async() => {
+      if (currentConsent === consentGiven()) {
+        if (overlayFirstCheck) {
+          overlayFirstCheck = false;
+          setTimeout(() => check(), 2000);
+          return;
+        }
+        setTimeout(() => check(), 30000);
+      } else {
+        currentConsent = consentGiven()
+        let iframe = document.getElementById(ebu_news_id + '_' + ebu_news_language)
+        iframe?.contentWindow.postMessage({ type: 'update_consent', consent: currentConsent, session_id: ebu_news_s_id }, iframe?.src)
+
+        if (currentConsent) {
+          if (!articleRead) sendReadEvent();
+          setTimeout(() => check(), 30000);
+        } else setTimeout(() => check(), 1000);
+      }
+    };
+    check();
+  };
+
+  const createOverlay = ( newId, organisation, language ) => {
+    let url = overlayURL + '?page=article&organisation=' + organisation + '&article_id=' + newId + '&language=' + language + '&source=' + sourceName;
+    if (disableCache) url = url + '&nocache=1';
+    if (debugMode) url = url + '&debug=true';
+    if (ebu_news_s_id && ebu_news_s_id !== "0000") url = url + '&session_id=' + ebu_news_s_id;
+    if (ebu_share) url = url + '&social_origin=' + ebu_share;
+    url = url + '&host=' + parentLocation.hostname + '&page_uri=' + btoa(encodeURIComponent(parentLocation.href));
+
+    let div = document.createElement('div');
+    div.setAttribute('id', 'ebu-ovrly-wrpr');
+    div.style.cssText = 'display:block;position:fixed;z-index:'+defaultZindex+';left:0;top:0;width:100%;height:100%;overflow:none;';
+
+    let iframeNews = document.createElement('iframe');
+    iframeNews.style.cssText = 'width:100%;height:100%;border:none;';
+    iframeNews.style.frameBorder = 0;
+    iframeNews.style.colorScheme = 'light dark';
+    iframeNews.src = url;
+    iframeNews.id = newId + '_' + language;
+    iframeNews.setAttribute('allowtransparency', 'true');
+    iframeNews.setAttribute('webkitallowfullscreen', '');
+    iframeNews.setAttribute('mozallowfullscreen', '');
+    iframeNews.setAttribute('allowFullScreen', '');
+    iframeNews.setAttribute('allow', 'clipboard-write');
+    
+    if (document.getElementById('ebu-ovrly-wrpr')) {
+      document.getElementById('ebu-ovrly-wrpr').remove();
+    }
+    div.appendChild(iframeNews);
+    document.body.appendChild(div);
+  };
+
+  window?.addEventListener("message", (event) => {
+    if (event.data === 'close') {
+      let el = document?.getElementById('ebu-ovrly-wrpr');
+      if (el && el.parentNode) el.parentNode?.removeChild(el);
+    }
+    else if (event?.data === 'close_window') {
+      if (ebu_share) window.location.href = 'https://yepnews.eu/';
+      else window?.close()
+    }
+  });
+
+  if (ebu_news_id?.length && ebu_news_org && ebu_news_language?.length) createOverlay(ebu_news_id, ebu_news_org, ebu_news_language);
+
+
+  const setThemeColor = () => {
+    const desiredColor = window.matchMedia('(prefers-color-scheme: dark)').matches ? '#142e6c' : '#1A3E93';
+    if (document.querySelector('meta[name="theme-color"]')) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', desiredColor);
+    }
+    else {
+      const themeColorMeta = document.createElement('meta');
+      themeColorMeta.name = 'theme-color';
+      themeColorMeta.content = desiredColor;
+      document.head.appendChild(themeColorMeta);
+    }
+  };
+  setThemeColor();
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setThemeColor);
+
+  overlayObserveConsent();
+}
