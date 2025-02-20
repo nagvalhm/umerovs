@@ -1,0 +1,161 @@
+function MobileMenu(options) {
+    var btn = options.btn,
+        menuWrapper = options.menuWrapper;
+        closeBtn = options.closeBtn;
+
+    $(btn).click(function(){
+        $(menuWrapper).toggleClass('open');
+    });
+
+    $(closeBtn).click(function(){
+        console.log(btn);
+        $(menuWrapper).toggleClass('open');
+    });
+
+}
+
+new MobileMenu({
+    btn:$('.toggle-button'),
+    menuWrapper:$('.mobile_menu_wrapper'),
+    closeBtn: $('.close_mob_menu ')
+});
+
+//Ввыпадающая форма поиска
+function searchTogglee(options) {
+    var searchOverlay = $('<div id="overlay"></div>')
+    var body = $('body');
+    var parent = $(btn);
+
+    var btn = options.btn;
+
+    $(btn).click(function() {
+        $(body).addClass("search_open" );
+        $(searchOverlay).appendTo(btn.parent()).fadeIn(500);
+    });
+
+    $(searchOverlay).click(function() {
+        $(body).removeClass("search_open" );
+        $(searchOverlay).fadeOut(500);
+    });
+}
+
+new searchTogglee({
+    btn:$('.search-form_toggle'),
+});
+
+
+$( '.menu-item-has-children > a').click(function( event ) {
+  event.preventDefault();
+});
+
+
+$(window).load(function() {
+
+});
+
+$('.slider .flexslider').flexslider({
+    animation: "fade",
+    directionNav: false
+});
+
+$('.news_carousel').flexslider({
+    animation: "slide",
+    animationLoop: false,
+    slideshow: true,
+    itemWidth: 350,
+    itemMargin: 30,
+    controlNav: true,
+    touch: true,
+    minItems: 1,
+    maxItems: 3,
+});
+
+$('.musor_carousel').flexslider({
+    animation: "slide",
+    animationLoop: false,
+    slideshow: true,
+    itemWidth: 245,
+    itemMargin: 25,
+    controlNav: true,
+    touch: true,
+    minItems: 2,
+    maxItems: 4,
+});
+
+$('.post_carusel').flexslider({
+    animation: "slide",
+    animationLoop: false,
+    slideshow: true,
+    itemWidth: 350,
+    itemMargin: 30,
+    controlNav: true,
+    touch: true,
+    minItems: 1,
+    maxItems: 3,
+});
+
+$('.page_carusel').flexslider({
+    animation: "slide",
+    animationLoop: false,
+    slideshow: true,
+    itemWidth: 230,
+    itemMargin: 20,
+    controlNav: true,
+    touch: true,
+    minItems: 1,
+    maxItems: 3,
+});
+
+
+
+// $('a[href*="#"]').click(function() {
+
+//     $("html, body").animate({
+//         scrollTop: $($.attr(this, 'href')).offset().top
+//     }, 400, function() {
+//       // slideout.close();
+//     });
+//     return false;
+// });
+
+// $('.collapse').collapse({
+//   toggle: true
+// })
+
+$('.btn-primary').on('click',function() {
+  $('.collapse').collapse('hide');
+});
+
+function yandexMap() {
+    ymaps.ready(init);
+
+    function init () {
+
+        var myMap = new ymaps.Map("map", {
+            center: [44.944047,34.102915],
+            zoom: 17,
+            type: "yandex#map",
+            // controls: [],
+
+        });
+
+        placemark1 = new ymaps.Placemark([44.944200,34.102582], {
+            hintContent: "",
+            iconContent: "",
+        }, {
+            preset: "islands#blueDotIcon", //https://tech.yandex.ru/maps/doc/jsapi/2.1/ref/reference/option.presetStorage-docpage/
+            iconColor: "#1e98ff"
+        });
+
+        myMap.geoObjects.add(placemark1);
+        myMap.behaviors.disable('scrollZoom'); 
+    }
+    // myMap.behaviors.disable('scrollZoom');
+};
+
+//Прячем сообщение wpcf7 через 2.5сек
+$(document).ajaxComplete(function() {
+    setTimeout(function(){
+        $('.wpcf7-response-output').slideUp('slow');
+    }, 2500);
+});
